@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -58,14 +57,18 @@ func createTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Генерируем новый ID (например, просто по количеству элементов)
-	newTask.ID = strconv.Itoa(len(tasks) + 1)
+	// Проверяем, если задача с таким ID уже существует
+	if _, exists := tasks[newTask.ID]; exists {
+		http.Error(w, "Задача с таким ID уже существует", http.StatusBadRequest)
+		return
+	}
+
 	tasks[newTask.ID] = newTask
 
 	w.WriteHeader(http.StatusCreated)
 }
 
-func getTaskByID(w http.ResponseWriter, r *http.Request) {
+func getTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	id := chi.URLParam(r, "id")
@@ -81,7 +84,7 @@ func getTaskByID(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func deleteTaskByID(w http.ResponseWriter, r *http.Request) {
+func deleteTask(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	id := chi.URLParam(r, "id")
@@ -98,10 +101,10 @@ func main() {
 	r := chi.NewRouter()
 
 	// здесь регистрируйте ваши обработчики
-	r.Get("/tasks", getTasks)               // Получить все задачи
-	r.Post("/tasks", createTask)            // Создать новую задачу
-	r.Get("/tasks/{id}", getTaskByID)       // Получить задачу по ID
-	r.Delete("/tasks/{id}", deleteTaskByID) // Удалить задачу по ID
+	r.Get("/tasks", getTasks)           // Получить все задачи
+	r.Post("/tasks", createTask)        // Создать новую задачу
+	r.Get("/tasks/{id}", getTask)       // Получить задачу по ID
+	r.Delete("/tasks/{id}", deleteTask) // Удалить задачу по ID
 
 	if err := http.ListenAndServe(":8080", r); err != nil {
 		fmt.Printf("Ошибка при запуске сервера: %s", err.Error())
